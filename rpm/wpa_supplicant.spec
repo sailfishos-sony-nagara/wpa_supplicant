@@ -47,7 +47,7 @@ popd
 rm -rf %{buildroot}
 
 # init scripts
-install -D -m 0755 %{SOURCE3} %{buildroot}/%{_lib}/systemd/system/%{name}.service
+install -D -m 0644 %{SOURCE3} %{buildroot}/%{_lib}/systemd/system/%{name}.service
 install -D -m 0644 %{SOURCE4} %{buildroot}/%{_sysconfdir}/sysconfig/%{name}
 
 # config
@@ -84,7 +84,8 @@ if [ $1 -eq 1 ] ; then
 # Initial installation
 /bin/systemctl daemon-reload >/dev/null 2>&1 || :
 fi
-rm /var/log/wpa_supplicant.log || :
+# Remove old log file that is not used anymore if it happens to exist.
+rm -f /var/log/wpa_supplicant.log || :
 
 %postun
 /bin/systemctl daemon-reload >/dev/null 2>&1 || :
@@ -93,7 +94,7 @@ rm /var/log/wpa_supplicant.log || :
 
 %files
 %defattr(-,root,root,-)
-%doc COPYING %{name}/ChangeLog README %{name}/eap_testing.txt %{name}/todo.txt %{name}/wpa_supplicant.conf %{name}/examples
+%doc COPYING 
 %config(noreplace) %{_sysconfdir}/%{name}/%{name}.conf
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}
 /%{_lib}/systemd/system/%{name}.service
@@ -106,3 +107,5 @@ rm /var/log/wpa_supplicant.log || :
 %dir %{_sysconfdir}/%{name}
 #%doc %{_mandir}/man8/*
 #%doc %{_mandir}/man5/*
+#%doc %{name}/ChangeLog README %{name}/eap_testing.txt %{name}/todo.txt %{name}/wpa_supplicant.conf %{name}/examples
+

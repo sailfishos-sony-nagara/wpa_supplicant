@@ -14,7 +14,6 @@ Source4:    %{name}.sysconfig
 BuildRequires:  pkgconfig(libnl-3.0)
 BuildRequires:  pkgconfig(dbus-1)
 BuildRequires:  pkgconfig(openssl)
-BuildRequires:  readline-devel
 # Required for systemctl
 Requires(post): systemd
 Requires(preun): systemd

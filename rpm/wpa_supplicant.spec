@@ -1,7 +1,7 @@
 Name:       wpa_supplicant
 
 Summary:    WPA/WPA2/IEEE 802.1X Supplicant
-Version:    2.6
+Version:    2.8
 Release:    1
 Group:      System Environment/Base
 License:    GPLv2
@@ -11,6 +11,7 @@ Source1:    build-config
 Source2:    %{name}.conf
 Source3:    %{name}.service
 Source4:    %{name}.sysconfig
+Patch0:     0001-Revert-nl80211-Set-NL80211_ATTR_IFACE_SOCKET_OWNER-f.patch
 BuildRequires:  pkgconfig(libnl-3.0)
 BuildRequires:  pkgconfig(dbus-1)
 BuildRequires:  pkgconfig(openssl)
@@ -29,7 +30,8 @@ with a WPA Authenticator and it controls the roaming and IEEE 802.11
 authentication/association of the wlan driver.
 
 %prep
-%setup -q -n %{name}-%{version}/hostap
+%setup -q -n %{name}-%{version}/upstream
+%patch0 -p1
 
 %build
 pushd wpa_supplicant
@@ -59,7 +61,6 @@ install -m 0755 %{name}/wpa_cli %{buildroot}/%{_sbindir}
 install -m 0755 %{name}/wpa_supplicant %{buildroot}/%{_sbindir}
 install -D -m 0644 %{name}/dbus/dbus-wpa_supplicant.conf %{buildroot}/%{_sysconfdir}/dbus-1/system.d/wpa_supplicant.conf
 install -D -m 0644 %{name}/dbus/fi.w1.wpa_supplicant1.service %{buildroot}/%{_datadir}/dbus-1/system-services/fi.w1.wpa_supplicant1.service
-install -D -m 0644 %{name}/dbus/fi.epitest.hostap.WPASupplicant.service %{buildroot}/%{_datadir}/dbus-1/system-services/fi.epitest.hostap.WPASupplicant.service
 
 # man pages
 #install -d %{buildroot}%{_mandir}/man{5,8}
@@ -98,7 +99,6 @@ rm -f /var/log/wpa_supplicant.log || :
 %config(noreplace) %{_sysconfdir}/sysconfig/%{name}
 /%{_lib}/systemd/system/%{name}.service
 %{_sysconfdir}/dbus-1/system.d/%{name}.conf
-%{_datadir}/dbus-1/system-services/fi.epitest.hostap.WPASupplicant.service
 %{_datadir}/dbus-1/system-services/fi.w1.wpa_supplicant1.service
 %{_sbindir}/wpa_passphrase
 %{_sbindir}/wpa_supplicant

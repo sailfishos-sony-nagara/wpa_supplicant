@@ -95,8 +95,8 @@ rm -f /var/log/wpa_supplicant.log || :
 %files
 %defattr(-,root,root,-)
 %doc COPYING 
-%config(noreplace) %{_sysconfdir}/%{name}/%{name}.conf
-%config(noreplace) %{_sysconfdir}/sysconfig/%{name}
+%config %{_sysconfdir}/%{name}/%{name}.conf
+%config %{_sysconfdir}/sysconfig/%{name}
 /%{_lib}/systemd/system/%{name}.service
 %{_sysconfdir}/dbus-1/system.d/%{name}.conf
 %{_datadir}/dbus-1/system-services/fi.w1.wpa_supplicant1.service

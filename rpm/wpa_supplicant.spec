@@ -1,9 +1,8 @@
 Name:       wpa_supplicant
 
 Summary:    WPA/WPA2/IEEE 802.1X Supplicant
-Version:    2.8
+Version:    2.9
 Release:    1
-Group:      System Environment/Base
 License:    GPLv2
 URL:        http://w1.fi/wpa_supplicant/
 Source0:    %{name}-%{version}.tar.gz
@@ -12,6 +11,7 @@ Source2:    %{name}.conf
 Source3:    %{name}.service
 Source4:    %{name}.sysconfig
 Patch0:     0001-Revert-nl80211-Set-NL80211_ATTR_IFACE_SOCKET_OWNER-f.patch
+Patch1:     0001-AP-Silently-ignore-management-frame-from-unexpected.patch
 BuildRequires:  pkgconfig(libnl-3.0)
 BuildRequires:  pkgconfig(dbus-1)
 BuildRequires:  pkgconfig(openssl)
@@ -32,6 +32,7 @@ authentication/association of the wlan driver.
 %prep
 %setup -q -n %{name}-%{version}/upstream
 %patch0 -p1
+%patch1 -p1
 
 %build
 pushd wpa_supplicant
@@ -94,7 +95,7 @@ rm -f /var/log/wpa_supplicant.log || :
 
 %files
 %defattr(-,root,root,-)
-%doc COPYING 
+%license COPYING 
 %config %{_sysconfdir}/%{name}/%{name}.conf
 %config %{_sysconfdir}/sysconfig/%{name}
 /%{_lib}/systemd/system/%{name}.service

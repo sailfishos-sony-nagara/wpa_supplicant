@@ -15,6 +15,7 @@ Patch1:     0001-AP-Silently-ignore-management-frame-from-unexpected.patch
 BuildRequires:  pkgconfig(libnl-3.0)
 BuildRequires:  pkgconfig(dbus-1)
 BuildRequires:  pkgconfig(openssl)
+BuildRequires: systemd
 # Required for systemctl
 Requires(post): systemd
 Requires(preun): systemd
@@ -30,9 +31,7 @@ with a WPA Authenticator and it controls the roaming and IEEE 802.11
 authentication/association of the wlan driver.
 
 %prep
-%setup -q -n %{name}-%{version}/upstream
-%patch0 -p1
-%patch1 -p1
+%autosetup -p1 -n %{name}-%{version}/upstream
 
 %build
 pushd wpa_supplicant
@@ -42,14 +41,14 @@ CXXFLAGS="${CXXFLAGS:-%optflags}" ; export CXXFLAGS ;
 # yes, BINDIR=_sbindir
 BINDIR="%{_sbindir}" ; export BINDIR ;
 LIBDIR="%{_libdir}" ; export LIBDIR ;
-make %{?jobs:-j%jobs}
+%make_build
 popd
 
 %install
 rm -rf %{buildroot}
 
 # init scripts
-install -D -m 0644 %{SOURCE3} %{buildroot}/%{_lib}/systemd/system/%{name}.service
+install -D -m 0644 %{SOURCE3} %{buildroot}%{_unitdir}/%{name}.service
 install -D -m 0644 %{SOURCE4} %{buildroot}/%{_sysconfdir}/sysconfig/%{name}
 
 # config
@@ -98,7 +97,7 @@ rm -f /var/log/wpa_supplicant.log || :
 %license COPYING 
 %config %{_sysconfdir}/%{name}/%{name}.conf
 %config %{_sysconfdir}/sysconfig/%{name}
-/%{_lib}/systemd/system/%{name}.service
+%{_unitdir}/%{name}.service
 %{_sysconfdir}/dbus-1/system.d/%{name}.conf
 %{_datadir}/dbus-1/system-services/fi.w1.wpa_supplicant1.service
 %{_sbindir}/wpa_passphrase

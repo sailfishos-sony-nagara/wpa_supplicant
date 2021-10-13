@@ -15,11 +15,9 @@ Patch1:     0001-AP-Silently-ignore-management-frame-from-unexpected.patch
 BuildRequires:  pkgconfig(libnl-3.0)
 BuildRequires:  pkgconfig(dbus-1)
 BuildRequires:  pkgconfig(openssl)
-BuildRequires: systemd
+BuildRequires:  pkgconfig(systemd)
 # Required for systemctl
-Requires(post): systemd
-Requires(preun): systemd
-Requires(postun): systemd
+%{?systemd_requires}
 # Required for rm
 Requires(post): coreutils
 

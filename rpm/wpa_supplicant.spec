@@ -12,6 +12,8 @@ Source3:    %{name}.service
 Source4:    %{name}.sysconfig
 Patch0:     0001-Revert-nl80211-Set-NL80211_ATTR_IFACE_SOCKET_OWNER-f.patch
 Patch1:     0001-AP-Silently-ignore-management-frame-from-unexpected.patch
+Patch2:     0001-P2P-Fix-copying-of-secondary-device-types-for-P2P-gr.patch
+Patch3:     0001-P2P-Fix-a-corner-case-in-peer-addition-based-on-PD-R.patch
 BuildRequires:  pkgconfig(libnl-3.0)
 BuildRequires:  pkgconfig(dbus-1)
 BuildRequires:  pkgconfig(openssl)
@@ -60,11 +62,6 @@ install -m 0755 %{name}/wpa_supplicant %{buildroot}/%{_sbindir}
 install -D -m 0644 %{name}/dbus/dbus-wpa_supplicant.conf %{buildroot}/%{_sysconfdir}/dbus-1/system.d/wpa_supplicant.conf
 install -D -m 0644 %{name}/dbus/fi.w1.wpa_supplicant1.service %{buildroot}/%{_datadir}/dbus-1/system-services/fi.w1.wpa_supplicant1.service
 
-# man pages
-#install -d %{buildroot}%{_mandir}/man{5,8}
-#install -m 0644 %{name}/doc/docbook/*.8 %{buildroot}%{_mandir}/man8
-#install -m 0644 %{name}/doc/docbook/*.5 %{buildroot}%{_mandir}/man5
-
 # some cleanup in docs and examples
 rm -f  %{name}/doc/.cvsignore
 rm -rf %{name}/doc/docbook
@@ -102,7 +99,4 @@ rm -f /var/log/wpa_supplicant.log || :
 %{_sbindir}/wpa_supplicant
 %{_sbindir}/wpa_cli
 %dir %{_sysconfdir}/%{name}
-#%doc %{_mandir}/man8/*
-#%doc %{_mandir}/man5/*
-#%doc %{name}/ChangeLog README %{name}/eap_testing.txt %{name}/todo.txt %{name}/wpa_supplicant.conf %{name}/examples
 

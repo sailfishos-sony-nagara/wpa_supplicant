@@ -4,7 +4,7 @@ Summary:    WPA/WPA2/IEEE 802.1X Supplicant
 Version:    2.9
 Release:    1
 License:    GPLv2
-URL:        http://w1.fi/wpa_supplicant/
+URL:        https://github.com/sailfishos/wpa_supplicant
 Source0:    %{name}-%{version}.tar.gz
 Source1:    build-config
 Source2:    %{name}.conf

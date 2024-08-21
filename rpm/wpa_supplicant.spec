@@ -1,7 +1,7 @@
 Name:       wpa_supplicant
 
 Summary:    WPA/WPA2/IEEE 802.1X Supplicant
-Version:    2.10
+Version:    2.11
 Release:    1
 License:    GPLv2
 URL:        https://github.com/sailfishos/wpa_supplicant
@@ -10,9 +10,16 @@ Source1:    build-config
 Source2:    %{name}.conf
 Source3:    %{name}.service
 Source4:    %{name}.sysconfig
-Patch0:     0001-Revert-nl80211-Set-NL80211_ATTR_IFACE_SOCKET_OWNER-f.patch
-Patch1:     wpa_supplicant_tls.patch
-Patch2:     wpa_supplicant_dbus_service_syslog.patch
+Patch0:     wpa_supplicant_tls.patch
+Patch1:     wpa_supplicant_dbus_service_syslog.patch
+# From Fedora
+Patch2:     wpa_supplicant-assoc-timeout.patch
+Patch3:     wpa_supplicant-flush-debug-output.patch
+Patch4:     wpa_supplicant-quiet-scan-results-message.patch
+# From Fedora/Debian
+Patch5:     wpa_supplicant-allow-legacy-renegotiation.patch
+# From SUSE
+Patch6:     wpa_supplicant-sigusr1-changes-debuglevel.patch
 BuildRequires:  pkgconfig(libnl-3.0)
 BuildRequires:  pkgconfig(dbus-1)
 BuildRequires:  pkgconfig(openssl)

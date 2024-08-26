@@ -3,7 +3,7 @@ Name:       wpa_supplicant
 Summary:    WPA/WPA2/IEEE 802.1X Supplicant
 Version:    2.11
 Release:    1
-License:    GPLv2
+License:    BSD
 URL:        https://github.com/sailfishos/wpa_supplicant
 Source0:    %{name}-%{version}.tar.gz
 Source1:    build-config

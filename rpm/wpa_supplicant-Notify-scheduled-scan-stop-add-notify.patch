@@ -1,0 +1,53 @@
+From 6ef99cf2902fcdfcbaa976bd5d85f080765c9f2f Mon Sep 17 00:00:00 2001
+From: Jussi Laakkonen <jussi.laakkonen@jolla.com>
+Date: Wed, 11 Dec 2024 17:21:54 +0200
+Subject: [PATCH] wpa_supplicant: Notify scheduled scan stop, add notify
+ logging
+
+Add call to wpa_supplicant_notify_scanning() into
+wpa_supplicant_stop_sched_scan() to notify also the end of the scheduled
+scan. This is for upper layer components relying on the scan state to be
+able to trigger their own scan requests. Also add more logging for the
+scan start and stop notifies.
+
+Signed-off-by: Jussi Laakkonen <jussi.laakkonen@jolla.com>
+---
+ wpa_supplicant/scan.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/wpa_supplicant/scan.c b/wpa_supplicant/scan.c
+index 8b59e409b..34cbbc7d4 100644
+--- a/wpa_supplicant/scan.c
++++ b/wpa_supplicant/scan.c
+@@ -211,6 +211,8 @@ static void wpas_trigger_scan_cb(struct wpa_radio_work *work, int deinit)
+ 		return;
+ 	}
+ 
++	wpa_printf(MSG_DEBUG,
++			   "wpas_trigger_scan_cb notify scanning 1");
+ 	wpa_supplicant_notify_scanning(wpa_s, 1);
+ 
+ 	if (wpa_s->clear_driver_scan_cache) {
+@@ -372,6 +374,8 @@ wpa_supplicant_start_sched_scan(struct wpa_supplicant *wpa_s,
+ {
+ 	int ret;
+ 
++	wpa_printf(MSG_DEBUG,
++			   "wpa_supplicant_start_sched_scan notify scanning 1");
+ 	wpa_supplicant_notify_scanning(wpa_s, 1);
+ 	ret = wpa_drv_sched_scan(wpa_s, params);
+ 	if (ret)
+@@ -394,6 +398,10 @@ static int wpa_supplicant_stop_sched_scan(struct wpa_supplicant *wpa_s)
+ 		return -1;
+ 	}
+ 
++	wpa_printf(MSG_DEBUG,
++			   "wpa_supplicant_start_sched_scan notify scanning 0");
++	wpa_supplicant_notify_scanning(wpa_s, 0);
++
+ 	return ret;
+ }
+ 
+-- 
+2.39.2
+

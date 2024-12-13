@@ -20,6 +20,9 @@ Patch4:     wpa_supplicant-quiet-scan-results-message.patch
 Patch5:     wpa_supplicant-allow-legacy-renegotiation.patch
 # From SUSE
 Patch6:     wpa_supplicant-sigusr1-changes-debuglevel.patch
+# SailfishOS
+Patch7:     wpa_supplicant-nl80211-Implement-support-for-scheduled-scan-timeout.patch
+Patch8:     wpa_supplicant-Notify-scheduled-scan-stop-add-notify.patch
 BuildRequires:  pkgconfig(libnl-3.0)
 BuildRequires:  pkgconfig(dbus-1)
 BuildRequires:  pkgconfig(openssl)

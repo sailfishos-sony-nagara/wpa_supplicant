@@ -1,0 +1,154 @@
+From 4bf651e712ed5031eda928a8626fb629bf76faf0 Mon Sep 17 00:00:00 2001
+From: Jussi Laakkonen <jussi.laakkonen@jolla.com>
+Date: Wed, 11 Dec 2024 17:06:04 +0200
+Subject: [PATCH] nl80211: Implement support for scheduled scan timeout
+
+Some drivers do start scheduled scan but never finish with the results.
+This timeout is equal to the scan timeout and behaves similarly, except
+the scan stopped event is sent when timeout is reached.
+
+Timeout will be started when the scheduled scan is initiated and
+canceled when the scan is stopped. Timeout itself is calculated
+similarly to the scan event timeout, ranging from 10s to 30s and for
+this a separate wpa_driver_nl80211_get_scan_timeout() is created to
+avoid code duplication.
+
+Signed-off-by: Jussi Laakkonen <jussi.laakkonen@jolla.com>
+---
+ src/drivers/driver_nl80211.h       |  3 ++
+ src/drivers/driver_nl80211_event.c |  9 +++++
+ src/drivers/driver_nl80211_scan.c  | 59 ++++++++++++++++++++++++------
+ 3 files changed, 60 insertions(+), 11 deletions(-)
+
+diff --git a/src/drivers/driver_nl80211.h b/src/drivers/driver_nl80211.h
+index 618746e67..4926c47ae 100644
+--- a/src/drivers/driver_nl80211.h
++++ b/src/drivers/driver_nl80211.h
+@@ -397,6 +397,9 @@ int wpa_driver_set_ap_wps_p2p_ie(void *priv, const struct wpabuf *beacon,
+ /* driver_nl80211_scan.c */
+ 
+ void wpa_driver_nl80211_scan_timeout(void *eloop_ctx, void *timeout_ctx);
++void wpa_driver_nl80211_scheduled_scan_timeout(void *eloop_ctx,
++			    void *timeout_ctx);
++int wpa_driver_nl80211_get_scan_timeout(struct wpa_driver_nl80211_data *drv);
+ int wpa_driver_nl80211_scan(struct i802_bss *bss,
+ 			    struct wpa_driver_scan_params *params);
+ int wpa_driver_nl80211_sched_scan(void *priv,
+diff --git a/src/drivers/driver_nl80211_event.c b/src/drivers/driver_nl80211_event.c
+index aee815e97..33169b93e 100644
+--- a/src/drivers/driver_nl80211_event.c
++++ b/src/drivers/driver_nl80211_event.c
+@@ -3858,6 +3858,7 @@ static void do_process_drv_event(struct i802_bss *bss, int cmd,
+ {
+ 	struct wpa_driver_nl80211_data *drv = bss->drv;
+ 	int external_scan_event = 0;
++	int timeout = 0;
+ 	struct nlattr *frame = tb[NL80211_ATTR_FRAME];
+ 
+ 	wpa_printf(MSG_DEBUG, "nl80211: Drv Event %d (%s) received for %s",
+@@ -3911,10 +3912,18 @@ static void do_process_drv_event(struct i802_bss *bss, int cmd,
+ 	case NL80211_CMD_START_SCHED_SCAN:
+ 		wpa_dbg(drv->ctx, MSG_DEBUG, "nl80211: Sched scan started");
+ 		drv->scan_state = SCHED_SCAN_STARTED;
++		eloop_cancel_timeout(wpa_driver_nl80211_scheduled_scan_timeout,
++				drv, drv->ctx);
++		timeout = wpa_driver_nl80211_get_scan_timeout(drv);
++		eloop_register_timeout(timeout, 0,
++				wpa_driver_nl80211_scheduled_scan_timeout, drv,
++				drv->ctx);
+ 		break;
+ 	case NL80211_CMD_SCHED_SCAN_STOPPED:
+ 		wpa_dbg(drv->ctx, MSG_DEBUG, "nl80211: Sched scan stopped");
+ 		drv->scan_state = SCHED_SCAN_STOPPED;
++		eloop_cancel_timeout(wpa_driver_nl80211_scheduled_scan_timeout,
++				drv, drv->ctx);
+ 		wpa_supplicant_event(drv->ctx, EVENT_SCHED_SCAN_STOPPED, NULL);
+ 		break;
+ 	case NL80211_CMD_NEW_SCAN_RESULTS:
+diff --git a/src/drivers/driver_nl80211_scan.c b/src/drivers/driver_nl80211_scan.c
+index b055e684a..65c75ef4e 100644
+--- a/src/drivers/driver_nl80211_scan.c
++++ b/src/drivers/driver_nl80211_scan.c
+@@ -173,6 +173,35 @@ void wpa_driver_nl80211_scan_timeout(void *eloop_ctx, void *timeout_ctx)
+ 	wpa_supplicant_event(timeout_ctx, EVENT_SCAN_RESULTS, NULL);
+ }
+ 
++void wpa_driver_nl80211_scheduled_scan_timeout(void *eloop_ctx,
++							void *timeout_ctx)
++{
++	struct wpa_driver_nl80211_data *drv = eloop_ctx;
++
++	wpa_printf(MSG_DEBUG, "nl80211: Sched scan timeout - try to abort it");
++
++#ifdef CONFIG_DRIVER_NL80211_QCA
++	if (drv->vendor_scan_cookie &&
++	    nl80211_abort_vendor_scan(drv, drv->vendor_scan_cookie) == 0)
++		return;
++#endif /* CONFIG_DRIVER_NL80211_QCA */
++	if (!drv->vendor_scan_cookie && nl80211_abort_scan(drv->first_bss) == 0)
++		return;
++
++	wpa_printf(MSG_DEBUG, "nl80211: Failed to abort sched scan");
++
++	if (drv->ap_scan_as_station != NL80211_IFTYPE_UNSPECIFIED)
++		nl80211_restore_ap_mode(drv->first_bss);
++
++	wpa_printf(MSG_DEBUG, "nl80211: Try to get sched scan results");
++	/* TODO use EVENT_SCAN_RESULTS for now, there isn't one for scheduled
++	 * scan results.*/
++	wpa_supplicant_event(timeout_ctx, EVENT_SCAN_RESULTS, NULL);
++
++	drv->scan_state = SCHED_SCAN_STOPPED;
++	wpa_printf(MSG_DEBUG, "nl80211: Send stop scheduled scan event");
++	wpa_supplicant_event(timeout_ctx, EVENT_SCHED_SCAN_STOPPED, NULL);
++}
+ 
+ static struct nl_msg *
+ nl80211_scan_common(struct i802_bss *bss, u8 cmd,
+@@ -333,6 +362,24 @@ fail:
+ 	return NULL;
+ }
+ 
++int wpa_driver_nl80211_get_scan_timeout(struct wpa_driver_nl80211_data *drv)
++{
++	int timeout = 0;
++
++	timeout = drv->uses_6ghz ? 20 : 10;
++	if (drv->uses_s1g)
++		timeout += 5;
++	if (drv->scan_complete_events) {
++		/*
++		 * The driver seems to deliver events to notify when scan is
++		 * complete, so use longer timeout to avoid race conditions
++		 * with scanning and following association request.
++		 */
++		timeout = 30;
++	}
++
++	return timeout;
++}
+ 
+ /**
+  * wpa_driver_nl80211_scan - Request the driver to initiate scan
+@@ -422,17 +469,7 @@ int wpa_driver_nl80211_scan(struct i802_bss *bss,
+ 	drv->scan_state = SCAN_REQUESTED;
+ 	/* Not all drivers generate "scan completed" wireless event, so try to
+ 	 * read results after a timeout. */
+-	timeout = drv->uses_6ghz ? 20 : 10;
+-	if (drv->uses_s1g)
+-		timeout += 5;
+-	if (drv->scan_complete_events) {
+-		/*
+-		 * The driver seems to deliver events to notify when scan is
+-		 * complete, so use longer timeout to avoid race conditions
+-		 * with scanning and following association request.
+-		 */
+-		timeout = 30;
+-	}
++	timeout = wpa_driver_nl80211_get_scan_timeout(drv);
+ 	wpa_printf(MSG_DEBUG, "Scan requested (ret=%d) - scan timeout %d "
+ 		   "seconds", ret, timeout);
+ 	eloop_cancel_timeout(wpa_driver_nl80211_scan_timeout, drv, drv->ctx);
+-- 
+2.39.2
+
